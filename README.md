@@ -1,4 +1,4 @@
-# App Modernization with AWS Fargate(EKS) and MongoDB Atlas
+# App Modernization with AWS Fargate(ECS) and MongoDB Atlas
 
 ## Introduction: 
 This is a technical repo to demonstrate the application deployment using MongoDB Atlas and AWS Fargate.
