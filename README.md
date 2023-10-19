@@ -34,7 +34,7 @@ Please follow the [link](https://www.mongodb.com/docs/atlas/tutorial/deploy-free
 
 
 
-## **Configure the Network access **
+## **Configure the Network access**
 
 Configure the database for [network security](https://www.mongodb.com/docs/atlas/security/add-ip-address-to-list/) 
 
@@ -158,7 +158,7 @@ Update the Account ID
 	python3 -m pip install ecr-scan-reporter
 
  ### **Update the environment file with the MongoDB Atlas cluster connection string**
-Navigate to .env and update the connection URL to point to the cluster you have created earlier. 
+Navigate to .env and update the connection URL to point to the cluster you created earlier. 
 
  ### **Setup the server in ECS**
 
@@ -172,7 +172,11 @@ Navigate to .env and update the connection URL to point to the cluster you have 
 
  ### **Setup the Client server in ECS**
  
-The previous steps have created a Load Balancer. Look up the LB DNS and update employee.service.ts to point to the DNS. Leave the port as is.
+The previous steps have created a Load Balancer. Look up the LB DNS and update employee.service.ts --> private_url to point to the DNS. Leave the port as is.
+
+<img width="1725" alt="image" src="https://github.com/mongodb-partners/Application_Modernization_with_AmazonFargate_MongoDBAtlas/assets/101570105/08fa50c6-8b35-45b0-9145-2e6648576e6c">
+
+
 
 Update the docker-compose.yml with VPC and Account ID
 
@@ -183,10 +187,13 @@ Update the below code with a bucket name
 	ecs-compose-x up -f docker-compose.yml -f docker-compose-server.yml -f aws-server.yml -f aws-client.yml -n partner-meanstack-atlas-fargate -b <bucket>
 
 
- ### **Test the MEAN stack application **
+ ### **Test the MEAN stack application**
  
-Test the application in the browser by loading the app by the DNS and with port 8080. You should get a page like below. 
+Test the application in the browser by loading the app with the DNS and with port 8080. You should get a page like below. 
 Note: If it's the first time you won't have any existing records.
+
+<img width="977" alt="image" src="https://github.com/mongodb-partners/Application_Modernization_with_AmazonFargate_MongoDBAtlas/assets/101570105/57168fca-28b5-40c4-a890-7306df59c129">
+
 
 ## Summary:
 
