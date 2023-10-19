@@ -170,6 +170,9 @@ Navigate to .env and update the connection URL to point to the cluster you creat
 	docker-compose  -f docker-compose-server.yml push
 	ecs-compose-x up  -f docker-compose-server.yml -f aws-server.yml -n partner-meanstack-atlas-fargate -b <bucket>
 
+
+ Wait for the cloud formation stack to complete successfully.
+
  ### **Setup the Client server in ECS**
  
 The previous steps have created a Load Balancer. Look up the LB DNS and update employee.service.ts --> private_url to point to the DNS. Leave the port as is.
@@ -180,12 +183,17 @@ The previous steps have created a Load Balancer. Look up the LB DNS and update e
 
 Update the docker-compose.yml with VPC and Account ID
 
+<img width="1707" alt="image" src="https://github.com/mongodb-partners/Application_Modernization_with_AmazonFargate_MongoDBAtlas/assets/101570105/2418c967-9ff2-43b9-bccf-152b904ba7ec">
+
+
 Update the below code with a bucket name
 
 	docker-compose  -f docker-compose.yml build
 	docker-compose  -f docker-compose.yml push
 	ecs-compose-x up -f docker-compose.yml -f docker-compose-server.yml -f aws-server.yml -f aws-client.yml -n partner-meanstack-atlas-fargate -b <bucket>
 
+
+ Wait for the cloud formation stack to complete successfully.
 
  ### **Test the MEAN stack application**
  
