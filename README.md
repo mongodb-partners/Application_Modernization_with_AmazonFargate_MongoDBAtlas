@@ -24,231 +24,169 @@ AWS Fargate is a serverless, pay-as-you-go compute engine that lets you focus on
 
 
 
-## Pre-requisite:
-
-Code editor: [VSCode](https://code.visualstudio.com/download)
-
-Code repository: [Git](https://git-scm.com/downloads)
-
-Command Line execution: [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-
-Container: [Docker Desktop (with docker compose)](https://www.docker.com/products/docker-desktop/) 
-
-![image](https://github.com/mongodb-partners/MEANStack_with_Atlas_on_Fargate/assets/101570105/6ce21cd2-e12e-4f8a-afd6-e60ca0207668)
-
-**Side Note:** Ensure the versions are managed as shown. Will have compatibility issues with the latest versions.
-
-
-
-
-
 ## Step-by-Step Fargate Deployment:
 
 
-### **Step1a: Set up the MongoDB Atlas cluster**
+## **Set up the MongoDB Atlas cluster**
 
 
 Please follow the [link](https://www.mongodb.com/docs/atlas/tutorial/deploy-free-tier-cluster) to set up a free cluster in MongoDB Atlas
 
 
 
-### Step1b: Configure the Network access **
+## **Configure the Network access **
 
 Configure the database for [network security](https://www.mongodb.com/docs/atlas/security/add-ip-address-to-list/) 
 
 
-
-
-### Step1c: Set up the Role-based Authentication
-
-Follow the [link](https://www.mongodb.com/docs/atlas/security/passwordless-authentication/#aws-ecs-fargate:~:text=an%20IAM%20role.-,AWS%20ECS%20Fargate,-To%20learn%20how) for IAM Role based authentication for [AWS Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html#create-task-execution-role)
-
-On successful creation of the role, click "Add permissions" and select "Attach policies" to add "AmazonEC2ContainerRegistryReadOnly" policy to the role.
-
-
-<img width="1725" alt="image" src="https://user-images.githubusercontent.com/101570105/201688148-d3ad49a4-a067-44ef-8860-c7350e28cda1.png">
-
-
-
-Copy the ARN created for the role
-
-Select IAM Type as IAM role in MongoDB Atlas for the database user and  provide the ARN as shown below
-
-![image](https://user-images.githubusercontent.com/114057324/201102950-4176fdc2-d3d7-4743-bef7-738553f75bd4.png)
-
-
-
-### **Step2: Copy the code and configure **  
-
-git clone the code from the repository
-
-              git clone https://github.com/mongodb-partners/MEANStack_with_Atlas_on_Fargate.git
-              
-              cd code/MEANSTACK/partner-meanstack-atlas-fargate
-
-
-
-Open the code in VSCode
-
-Configure the MongoDB Connection string in ".env" in partner-meanstack-atlas-fargate --> server --> .env file. Update the server details.
-
-
-
-<img width="1204" alt="image" src="https://user-images.githubusercontent.com/101570105/201385351-e462d966-615a-40ca-8be7-0494c7cb90a3.png">
-
-
-
-
-### **Step3a: Create the Elastic Container Repository(ECR)  **  
-
-Setup the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html) environment
-
-Create the ECR for the client and note down the URI for the repository.
-
-                  	aws ecr create-repository \
-                  --repository-name partner-meanstack-atlas-fargate-client \
-                  --image-scanning-configuration scanOnPush=true \
-                  --region us-east-1
-                   
-Create the ECR for the backend and note down the URI for the repository.
-
-
-		aws ecr create-repository \
-                  --repository-name partner-meanstack-atlas-fargate-server \
-                  --image-scanning-configuration scanOnPush=true \
-                  --region us-east-1
-
-### **Step3b: Open the code and update for docker-compose.yaml **  
-
-
-
-Configure the Docker image in "docker-compose.yml" in partner-meanstack-atlas-fargate folder.
-
-Update the details for x-aws-vpc , x-aws-role, and images of both server and client, and platform. For the image, paste the URI copied from the earlier step.
-
-Ensure the VPC has having least two public subnets in different AZs. if any of the subnets are in the same AZs, the docker-compose up command will fail.
-
-<img width="1139" alt="image" src="https://user-images.githubusercontent.com/101570105/201689664-3ea7fe68-0e90-4baf-aac7-193fac998b0a.png">
-
-
-
-
-Ensure the docker desktop is up and running. if not start the [docker deamon](https://docs.docker.com/config/daemon/)
-
-
-
-
-
-### **Step4: Build the docker image and push it to ECR **  
-
-update the ECR URI with the account_id in the below command.
-
-ensure the current directory is ...code/partner-meanstack-atlas-fargate
-
-
-		aws ecr get-login-password --region us-east-1| docker login --username AWS --password-stdin <account_id>.dkr.ecr.us-east-1.amazonaws.com
-
-		docker context use default
-
-		docker compose build
-
-		docker compose push
-
-		docker context create ecs  partner-meanstack-atlas-fargate
-
-		docker context use partner-meanstack-atlas-fargate
-
-		docker compose up
-         
-
-
-
-Note: While creating the docker context, it will give the option for selecting the AWS authentication. Choose the default. Please refer [link](https://docs.docker.com/cloud/ecs-integration/) for further details
-
-
-************************************************************************
-
-? Create a Docker context using:  [Use arrows to move, type to filter]
-
-> An existing AWS profile
-
-  AWS secret and token credentials
+## **Setup Amazon ECS with AWS Fargate**
+
+### Create a role with a custom trust policy and AmazonECSTaskExecutionRolePolicy 
+
+Name the role: ecsTaskExecutionRole
+
+Use this custom trust policy
+
+
+	{
+	  "Version": "2012-10-17",
+	  "Statement": [
+	    {
+	      "Sid": "",
+	      "Effect": "Allow",
+	      "Principal": {
+	        "Service": "ecs-tasks.amazonaws.com"
+	      },
+	      "Action": "sts:AssumeRole"
+	    }
+	  ]
+	}
+
+
+Additional Policies: AmazonECSTaskExecutionRolePolicy
+
+
+### **Clone the GitHub repository**
+
+	git clone https://github.com/mongodb-partners/MEANStack_with_Atlas_on_Fargate.git
+	cd MEANStack_with_Atlas_on_Fargate/code/MEANSTACK/partner-meanstack-atlas-fargate
+
+### **Create Additional files**
+
+file: aws-client.yml
+
+	x-elbv2:
+	  mean-lb:
+	    Listeners:
+	      - Port: 8080
+	        Protocol: HTTP
+	        Targets:
+	          - name: client:client
+	            access: /
+	    Services:
+	      - name: client:client
+	        port: 8080
+	        protocol: HTTP
+	        healthcheck: 8080:HTTP:/:200,201
+
+  file: aws-server.yml
+
+	  x-elbv2:
+	  mean-lb:
+	    Properties:
+	      Scheme: internet-facing
+	      Type: application
+	    MacroParameters:
+	      Ingress:
+	        ExtSources:
+	          - IPv4: 0.0.0.0/0
+	            Name: ANY
+	            Description: "ANY"
+	    Listeners:
+	      - Port: 5200
+	        Protocol: HTTP
+	        Targets:
+	          - name: server:server
+	            access: /
+	    Services:
+	      - name: server:server
+	        port: 5200
+	        protocol: HTTP
+	        healthcheck: 5200:HTTP:/employees:200,201
+
+  file: docker-compose-server.yml (update the VPC and Account ID)
   
-  AWS environment variables
-  
-************************************************************************
+	version: "3"
+	
+	x-aws-vpc: vpc-XXXXXXX
+	x-aws-role: ecsTaskExecutionRole
+	
+	services:
+	  server:
+	    build: ./server
+	    image: <account>.dkr.ecr.us-east-1.amazonaws.com/partner-meanstack-atlas-fargate-server
+	    platform: linux/amd64
+	    ports:
+	      - 5200
+
+       
+### **Set up the Elastic Container Repository (ECR)**
+
+Update the Account ID
+
+	aws ecr get-login-password --region us-east-1| docker login --username AWS --password-stdin <account_id>.dkr.ecr.us-east-1.amazonaws.com
+	
+	sudo curl -L https://github.com/docker/compose/releases/download/v2.15.1/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+	
+	sudo chmod +x /usr/local/bin/docker-compose
+	
+	aws ecr create-repository \
+	--repository-name partner-meanstack-atlas-fargate-client \
+	--image-scanning-configuration scanOnPush=true \
+	--region us-east-1
+	
+	
+	aws ecr create-repository \
+	--repository-name partner-meanstack-atlas-fargate-server \
+	--image-scanning-configuration scanOnPush=true \
+	--region us-east-1
+	
+	
+	python3 -m venv venv
+	source venv/bin/activate
+	python3 -m pip install ecs-composex
+	python3 -m pip install ecr-scan-reporter
+
+ ### **Update the environment file with the MongoDB Atlas cluster connection string**
+Navigate to .env and update the connection URL to point to the cluster you have created earlier. 
+
+ ### **Setup the server in ECS**
+
+ Update the code with a bucket name
+ 
+	docker context create partner-meanstack-atlas-fargate
+	docker context use partner-meanstack-atlas-fargate
+	docker-compose  -f docker-compose-server.yml build
+	docker-compose  -f docker-compose-server.yml push
+	ecs-compose-x up  -f docker-compose-server.yml -f aws-server.yml -n partner-meanstack-atlas-fargate -b <bucket>
+
+ ### **Setup the Client server in ECS**
+ 
+The previous steps have created a Load Balancer. Look up the LB DNS and update employee.service.ts to point to the DNS. Leave the port as is.
+
+Update the docker-compose.yml with VPC and Account ID
+
+Update the below code with a bucket name
+
+	docker-compose  -f docker-compose.yml build
+	docker-compose  -f docker-compose.yml push
+	ecs-compose-x up -f docker-compose.yml -f docker-compose-server.yml -f aws-server.yml -f aws-client.yml -n partner-meanstack-atlas-fargate -b <bucket>
 
 
-This will automatically create the AWS CloudFormation stack and deploy the stack.
-
-
-![](https://github.com/Babusrinivasan76/fargateintegrationwithatlas/blob/main/images/cloudformation.png)
-
-
-Verify that the stack is completed successfully
-
-
-Verify the ECS cluster, task definition, and services are created successfully.
-
-<img width="1724" alt="image" src="https://user-images.githubusercontent.com/101570105/201421165-d5f4c212-ae2f-4419-b2e6-14e009128009.png">
-
-
-<img width="1724" alt="image" src="https://user-images.githubusercontent.com/101570105/201421736-0fa26d10-faec-434e-9b5d-2c080bd3aa30.png">
-
-
-<img width="1724" alt="image" src="https://user-images.githubusercontent.com/101570105/201420271-1eb283a9-d8c8-42af-8147-32a61cd59e52.png">
-
-
-
-Copy the DNS Name from the Load Balancer
-
-<img width="1728" alt="image" src="https://user-images.githubusercontent.com/101570105/201686833-ea1162e2-b64e-4287-9ec7-4418f6f6bf22.png">
-
-
-update the private URL in the code with the copied DNS Name. (partner-meanstack-atlas-fargate --> client --> src --> app --> employee.service.ts )
-
-<img width="1395" alt="image" src="https://user-images.githubusercontent.com/101570105/201687263-25bfc59b-efb0-4890-808a-1aac91ccb912.png">
-
-Ensure the code is saved successfully.
-
-complete the rebuild. It will be a rolling update and the changes will be deployed, without impact to the running instances.
-
-		docker context use default
-		
-		docker compose build
-		
-		docker compose push
-		
-		docker context use partner-meanstack-atlas-fargate
-
-		docker compose up
-		
-
-Ensure that both the client and server tasks are up and running after the update.
-
-<img width="1723" alt="image" src="https://user-images.githubusercontent.com/101570105/201417465-06cd97ec-561b-4d73-ba4e-affa1f79db33.png">
-
-
-
-Ensure the AWS Cloud map service is registered with both client and server services.
-
-<img width="1723" alt="image" src="https://user-images.githubusercontent.com/101570105/201417137-036036f9-c93c-466a-9c6c-7f4605389300.png">
-
-
-copy the public IP address of the client task
-
-<img width="1696" alt="image" src="https://user-images.githubusercontent.com/101570105/201416515-4fc6f497-cd4d-4f44-b885-bd1b144ce6eb.png">
-
-
-
-### **Step7: Testing the Application**
-
-Test the application by invoking the public ipaddress:8080 copied from the above step.
-
-
-<img width="1637" alt="image" src="https://user-images.githubusercontent.com/101570105/201416331-d9f891fb-fd5c-4e69-9824-02fb6b78cb80.png">
-
-
+ ### **Test the MEAN stack application **
+ 
+Test the application in the browser by loading the app by the DNS and with port 8080. You should get a page like below. 
+Note: If it's the first time you won't have any existing records.
 
 ## Summary:
 
